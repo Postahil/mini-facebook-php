@@ -1,0 +1,357 @@
+================================================================================
+                    DOCUMENTATION MINI FACEBOOK - SYMFONY
+================================================================================
+
+📋 CE QUI A ÉTÉ FAIT
+================================================================================
+
+1. SYSTÈME D'AUTHENTIFICATION
+   - Inscription avec email, prénom, nom, mot de passe
+   - Connexion/déconnexion sécurisée
+   - Protection des routes par Symfony Security
+
+2. SYSTÈME DE POSTS
+   - Création, affichage et suppression de posts
+   - Affichage filtré : uniquement les posts de vos amis (et les vôtres)
+   - Système de likes (j'aime) avec toggle
+   - Système de commentaires sur les posts
+
+3. SYSTÈME D'AMITIÉ
+   - Recherche d'utilisateurs par nom, prénom ou email
+   - Envoi de demandes d'amitié
+   - Acceptation/rejet de demandes en attente
+   - Liste d'amis avec suppression
+   - Vérification que les utilisateurs sont amis pour certaines actions
+
+4. SYSTÈME DE MESSAGERIE PRIVÉE
+   - Conversations entre amis uniquement
+   - Envoi et réception de messages
+   - Marquage des messages comme lus/non lus
+   - Interface de conversation avec historique
+
+================================================================================
+COMMENT FONCTIONNE SYMFONY
+================================================================================
+
+Symfony suit le pattern MVC (Model-View-Controller) :
+
+1. Routing : Symfony route les requêtes HTTP vers les bons contrôleurs
+2. Controller : Traite la logique métier, appelle les services
+3. Entity (Model) : Représente les données de la base de données
+4. Repository : Gère les requêtes SQL personnalisées
+5. Template (View) : Affiche les données à l'utilisateur avec Twig
+
+Flux typique :
+Requête HTTP → Routing → Controller → Entity/Repository → Template → Réponse HTML
+
+================================================================================
+FICHIERS CLÉS DU PROJET
+================================================================================
+
+1. CONFIGURATION
+--------------------------------------------------------------------------------
+
+config/packages/security.yaml
+- Configure la sécurité et l'authentification
+- Définit qui peut accéder à quelles routes (ROLE_USER, PUBLIC_ACCESS)
+- Gère le hashage des mots de passe
+
+config/packages/doctrine.yaml
+- Configuration de la base de données MySQL
+- Configuration de Doctrine ORM (Object-Relational Mapping)
+
+.env.local
+- Variables d'environnement locales (non versionnées)
+- DATABASE_URL : connexion MySQL (test1)
+- APP_SECRET : clé secrète pour les tokens
+
+--------------------------------------------------------------------------------
+
+2. ENTITÉS (MODELS) - Base de Données
+--------------------------------------------------------------------------------
+
+src/Entity/User.php
+- Représente un utilisateur
+- Champs : id, email, password (hashé), firstname, lastname, roles
+- Relations : posts, comments, likes, friendships, sentMessages, receivedMessages
+- IMPORTANT : Implémente UserInterface pour l'authentification Symfony
+
+src/Entity/Post.php
+- Représente une publication
+- Champs : id, content, createdAt, author (relation vers User)
+- Relations : comments (commentaires), likes (j'aime)
+- Méthodes : getLikesCount(), isLikedBy(User)
+
+src/Entity/Comment.php
+- Représente un commentaire sur un post
+- Champs : id, content, createdAt
+- Relations : post et author (User)
+
+src/Entity/Like.php
+- Représente un "j'aime" sur un post
+- Relations : user et post
+- IMPORTANT : Contrainte unique pour éviter les likes en double
+
+src/Entity/Friendship.php
+- Gère les relations d'amitié entre utilisateurs
+- Champs : id, status (pending/accepted/blocked), createdAt
+- Relations : user (celui qui envoie) et friend (celui qui reçoit)
+- IMPORTANT : Contrainte unique pour éviter les doublons
+
+src/Entity/Message.php
+- Représente un message privé
+- Champs : id, content, createdAt, isRead (booléen)
+- Relations : sender et receiver (tous deux User)
+
+--------------------------------------------------------------------------------
+
+3. REPOSITORIES - Requêtes Base de Données
+--------------------------------------------------------------------------------
+
+src/Repository/UserRepository.php
+- Requêtes SQL personnalisées pour les utilisateurs
+- Méthode upgradePassword() : réhasher les mots de passe
+
+src/Repository/PostRepository.php
+- findAllOrderedByDate() : récupère tous les posts triés par date
+
+src/Repository/FriendshipRepository.php
+- findFriendship(User, User) : trouve une relation entre deux utilisateurs
+- findFriends(User) : liste tous les amis acceptés d'un utilisateur
+- findPendingRequests(User) : liste les demandes en attente
+
+src/Repository/MessageRepository.php
+- findConversation(User1, User2) : récupère tous les messages entre deux users
+- findUnreadMessages(User) : messages non lus
+- findConversationPartners(User) : liste des personnes avec qui on a des conversations
+
+--------------------------------------------------------------------------------
+
+4. CONTROLLERS - Logique Métier
+--------------------------------------------------------------------------------
+
+src/Controller/SecurityController.php
+Routes : /register, /login, /logout
+- Gère l'inscription, la connexion et la déconnexion
+- IMPORTANT : Hash le mot de passe avant de sauvegarder l'utilisateur
+
+src/Controller/PostController.php
+Routes : /, /post/new, /post/{id}, /post/{id}/delete
+- Gère les posts : création, affichage, suppression
+- LOGIQUE IMPORTANTE : Filtre les posts pour n'afficher que ceux des amis
+
+src/Controller/CommentController.php
+Routes : /post/{id}/comment, /comment/{id}/delete
+- Ajoute et supprime des commentaires sur les posts
+
+src/Controller/LikeController.php
+Route : /post/{id}/like
+- Like/Unlike un post (toggle) - ajoute ou retire le like
+
+src/Controller/FriendshipController.php
+Routes : /friends, /friends/search, /friends/request/{id}, /friends/accept/{id}, etc.
+- Gère toutes les fonctionnalités d'amitié : recherche, demande, acceptation, rejet, suppression
+
+src/Controller/MessageController.php
+Routes : /messages, /messages/conversation/{id}, /messages/send/{id}
+- Gère les conversations et l'envoi de messages
+- LOGIQUE IMPORTANTE : Vérifie que les utilisateurs sont amis avant d'autoriser les messages
+
+--------------------------------------------------------------------------------
+
+5. FORMS - Formulaires Symfony
+--------------------------------------------------------------------------------
+
+src/Form/RegistrationFormType.php
+- Crée le formulaire d'inscription
+- Champs : email, firstname, lastname, plainPassword (RepeatedType)
+- Validation : Email valide, mot de passe minimum 6 caractères
+
+src/Form/PostType.php
+- Formulaire pour créer un post
+- Champs : content (textarea)
+
+src/Form/CommentType.php
+- Formulaire pour ajouter un commentaire
+- Champs : content (textarea)
+
+src/Form/MessageType.php
+- Formulaire pour envoyer un message
+- Champs : content (textarea)
+
+--------------------------------------------------------------------------------
+
+6. TEMPLATES (VIEWS) - Interface Utilisateur
+--------------------------------------------------------------------------------
+
+templates/base.html.twig
+- Template de base pour toutes les pages
+- Contient : Navbar, menu de navigation, gestion des messages flash
+- Utilise Bootstrap pour le design
+
+templates/security/login.html.twig et register.html.twig
+- Pages d'authentification : formulaires de connexion/inscription
+
+templates/post/index.html.twig
+- Page d'accueil affichant les posts
+- Liste des posts avec boutons like/commentaire, formulaires de commentaires
+
+templates/friendship/index.html.twig
+- Liste des amis et demandes en attente
+- Deux colonnes : amis acceptés + demandes en attente
+
+templates/friendship/search.html.twig
+- Recherche d'utilisateurs
+- Barre de recherche + résultats avec bouton "Ajouter comme ami"
+
+templates/message/index.html.twig
+- Liste des conversations
+- Liste des personnes avec qui on a des messages
+
+templates/message/conversation.html.twig
+- Page de conversation avec un utilisateur
+- Messages affichés + formulaire pour envoyer un nouveau message
+- JavaScript pour auto-scroll vers le bas
+
+--------------------------------------------------------------------------------
+
+7. MIGRATIONS - Base de Données
+--------------------------------------------------------------------------------
+
+migrations/Version20260110210633.php
+- Première migration créant les tables : user, post, comment, like
+
+migrations/Version20260110221800.php
+- Migration ajoutant les tables : friendship et message
+
+Comment fonctionnent les migrations :
+- Doctrine génère automatiquement le SQL à partir des entités
+- Permet de versionner la structure de la base de données
+- Commande : php bin/console doctrine:migrations:migrate
+
+================================================================================
+FLUX DE FONCTIONNEMENT - EXEMPLE CRÉER UN POST
+================================================================================
+
+1. Requête HTTP : GET /post/new
+2. Routing : Symfony trouve la route et appelle PostController::new()
+3. Controller : 
+   - Crée un objet Post vide
+   - Crée un formulaire PostType lié à cet objet
+   - Affiche le template post/new.html.twig
+4. Template : L'utilisateur remplit le formulaire et clique "Publier"
+5. Requête HTTP : POST /post/new avec les données du formulaire
+6. Controller : 
+   - Reçoit les données via $form->handleRequest($request)
+   - Valide avec $form->isValid()
+   - Si valide : sauvegarde avec $entityManager->persist($post) et flush()
+   - Redirige vers la page d'accueil
+7. Template : Affiche un message de succès
+
+================================================================================
+EXEMPLE SYSTÈME D'AMITIÉ
+================================================================================
+
+1. Utilisateur A recherche Utilisateur B sur /friends/search
+2. Utilisateur A clique "Ajouter comme ami" → POST /friends/request/{id}
+3. FriendshipController::request() :
+   - Vérifie qu'il n'y a pas déjà de relation
+   - Crée une entité Friendship avec status='pending'
+   - Sauvegarde en base
+4. Utilisateur B va sur /friends et voit la demande en attente
+5. Utilisateur B clique "Accepter" → POST /friends/accept/{id}
+6. Le status de la Friendship passe à 'accepted'
+7. Maintenant, ils peuvent voir leurs posts mutuels et s'envoyer des messages
+
+================================================================================
+STRUCTURE BASE DE DONNÉES
+================================================================================
+
+Tables principales :
+
+- user : Utilisateurs (email, password hashé, prénom, nom, roles)
+- post : Posts (contenu, date, auteur)
+- comment : Commentaires (contenu, date, post, auteur)
+- like : Likes (user, post) avec contrainte unique
+- friendship : Relations d'amitié (user, friend, status)
+- message : Messages privés (sender, receiver, contenu, date, isRead)
+
+Relations clés :
+- Un User peut avoir plusieurs Posts, Comments, Likes, Friendships, Messages
+- Un Post appartient à un User et peut avoir plusieurs Comments et Likes
+- Une Friendship lie deux Users avec un status (pending/accepted)
+- Un Message a un sender et un receiver (tous deux User)
+
+================================================================================
+COMMANDES SYMFONY UTILES
+================================================================================
+
+php bin/console make:migration          # Créer une migration
+php bin/console doctrine:migrations:migrate  # Appliquer les migrations
+php bin/console debug:router           # Voir toutes les routes
+php bin/console cache:clear            # Vider le cache
+php bin/console make:entity            # Créer une entité
+php bin/console make:controller        # Créer un contrôleur
+php -S localhost:8000 -t public        # Démarrer le serveur
+
+================================================================================
+CONCEPTS SYMFONY IMPORTANTS
+================================================================================
+
+1. DEPENDENCY INJECTION
+   - Symfony injecte automatiquement les services dans les contrôleurs
+   - Exemple : EntityManagerInterface $entityManager est automatiquement fourni
+
+2. DOCTRINE ORM
+   - Transforme les entités PHP en tables SQL
+   - Gère les relations entre entités automatiquement
+   - Évite d'écrire du SQL manuellement
+
+3. TWIG (Moteur de Templates)
+   - Syntaxe : {{ variable }}, {% if condition %}, {% for item in items %}
+   - Évite le mélange PHP/HTML
+   - Permet l'héritage de templates (extends)
+
+4. FORM COMPONENT
+   - Crée automatiquement les formulaires HTML
+   - Valide les données
+   - Gère le CSRF (protection contre les attaques)
+
+5. SECURITY COMPONENT
+   - Gère l'authentification (login/logout)
+   - Autorisation (qui peut accéder à quoi)
+   - Hashage des mots de passe automatique
+
+================================================================================
+SÉCURITÉ IMPLÉMENTÉE
+================================================================================
+
+1. Hashage des mots de passe : UserPasswordHasherInterface
+2. Protection CSRF : Tous les formulaires ont un token CSRF
+3. Autorisation : Routes protégées avec #[IsGranted('ROLE_USER')]
+4. Validation : Contraintes sur les entités (NotBlank, Email, Length)
+5. Vérification d'amitié : Messages uniquement entre amis acceptés
+
+================================================================================
+POINTS D'ATTENTION
+================================================================================
+
+- Cache Symfony : Si vous modifiez les entités, pensez à vider le cache
+- Migrations : Toujours créer une migration après modification d'entité
+- Relations Doctrine : Bien définir inversedBy et mappedBy pour les relations
+- Validation : Les contraintes sont vérifiées automatiquement par Symfony
+- Environment : .env.local est ignoré par Git (variables sensibles)
+
+================================================================================
+RÉSUMÉ TECHNIQUES
+================================================================================
+
+Framework : Symfony 8.0
+Base de données : MySQL (test1)
+Interface : Bootstrap 5
+Moteur de templates : Twig
+ORM : Doctrine
+
+Date de création : Janvier 2026
+
+================================================================================

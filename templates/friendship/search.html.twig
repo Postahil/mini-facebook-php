@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rechercher des Amis - Mini Facebook{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="bi bi-search"></i> Rechercher des amis</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{{ path('app_friends_search') }}" class="mb-4">
+                    <div class="input-group">
+                        <input type="text" name="q" class="form-control" placeholder="Rechercher par nom, prénom ou email..." value="{{ query }}">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Rechercher
+                        </button>
+                    </div>
+                </form>
+
+                {% if users is not empty %}
+                    <div class="row">
+                        {% for user in users %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1"><i class="bi bi-person-circle"></i> {{ user.getFullName() }}</h6>
+                                                <small class="text-muted">{{ user.email }}</small>
+                                            </div>
+                                            <form method="post" action="{{ path('app_friends_request', {id: user.id}) }}">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('request' ~ user.id) }}">
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    <i class="bi bi-person-plus"></i> Ajouter comme ami
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% elseif query %}
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> Aucun utilisateur trouvé pour "{{ query }}"
+                    </div>
+                {% else %}
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> Entrez un nom, prénom ou email pour rechercher des utilisateurs
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

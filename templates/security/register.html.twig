@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Inscription - Mini Facebook{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h4><i class="bi bi-person-plus"></i> Inscription</h4>
+            </div>
+            <div class="card-body">
+                {% if not registrationForm.vars.valid %}
+                    <div class="alert alert-danger">
+                        <strong>Erreur :</strong> Veuillez corriger les erreurs ci-dessous.
+                    </div>
+                {% endif %}
+                
+                {{ form_start(registrationForm) }}
+                    <div class="mb-3">
+                        {{ form_label(registrationForm.email) }}
+                        {{ form_widget(registrationForm.email) }}
+                        {{ form_errors(registrationForm.email) }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form_label(registrationForm.firstname) }}
+                            {{ form_widget(registrationForm.firstname) }}
+                            {{ form_errors(registrationForm.firstname) }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form_label(registrationForm.lastname) }}
+                            {{ form_widget(registrationForm.lastname) }}
+                            {{ form_errors(registrationForm.lastname) }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_label(registrationForm.plainPassword.first) }}
+                        {{ form_widget(registrationForm.plainPassword.first) }}
+                        {{ form_errors(registrationForm.plainPassword.first) }}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form_label(registrationForm.plainPassword.second) }}
+                        {{ form_widget(registrationForm.plainPassword.second) }}
+                        {{ form_errors(registrationForm.plainPassword.second) }}
+                        {{ form_errors(registrationForm.plainPassword) }}
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-person-plus"></i> S'inscrire
+                        </button>
+                    </div>
+                {{ form_end(registrationForm) }}
+
+                <hr>
+                <div class="text-center">
+                    <p>Déjà un compte ? <a href="{{ path('app_login') }}">Connectez-vous</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

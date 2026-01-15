@@ -1,0 +1,88 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mes Amis - Mini Facebook{% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5><i class="bi bi-people"></i> Mes Amis</h5>
+                <a href="{{ path('app_friends_search') }}" class="btn btn-light btn-sm">
+                    <i class="bi bi-search"></i> Rechercher des amis
+                </a>
+            </div>
+            <div class="card-body">
+                {% if friends is empty %}
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle"></i> Vous n'avez pas encore d'amis. 
+                        <a href="{{ path('app_friends_search') }}">Recherchez des amis</a> pour commencer !
+                    </div>
+                {% else %}
+                    <div class="row">
+                        {% for friend in friends %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1"><i class="bi bi-person-circle"></i> {{ friend.getFullName() }}</h6>
+                                                <small class="text-muted">{{ friend.email }}</small>
+                                            </div>
+                                            <div>
+                                                <a href="{{ path('app_messages_conversation', {id: friend.id}) }}" class="btn btn-sm btn-primary">
+                                                    <i class="bi bi-chat"></i> Message
+                                                </a>
+                                                <form method="post" action="{{ path('app_friends_remove', {id: friend.id}) }}" class="d-inline" onsubmit="return confirm('Supprimer cet ami ?');">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('remove' ~ friend.id) }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                        <i class="bi bi-person-dash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h6><i class="bi bi-clock-history"></i> Demandes en attente</h6>
+            </div>
+            <div class="card-body">
+                {% if pendingRequests is empty %}
+                    <p class="text-muted text-center mb-0">Aucune demande en attente</p>
+                {% else %}
+                    {% for request in pendingRequests %}
+                        <div class="mb-3 p-2 border rounded">
+                            <strong>{{ request.user.getFullName() }}</strong>
+                            <small class="text-muted d-block">{{ request.user.email }}</small>
+                            <div class="mt-2">
+                                <form method="post" action="{{ path('app_friends_accept', {id: request.id}) }}" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('accept' ~ request.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-circle"></i> Accepter
+                                    </button>
+                                </form>
+                                <form method="post" action="{{ path('app_friends_reject', {id: request.id}) }}" class="d-inline" onsubmit="return confirm('Rejeter cette demande ?');">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('reject' ~ request.id) }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-x-circle"></i> Rejeter
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
